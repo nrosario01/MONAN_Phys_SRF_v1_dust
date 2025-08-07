@@ -242,6 +242,9 @@ module atm_core_interface
                           gf_monan_pcvol, &
                           gf_monan_sub3d
 
+      !--- options for the aerosol module 
+      integer, pointer :: config_aer_monan,config_dust_aer_monan
+      logical, pointer :: aerosols_monan_in,dust_aer_monan_in
 
       !
       ! Retrieve namelist options related to GF-MONAN
@@ -309,6 +312,40 @@ module atm_core_interface
 
          call mpas_log_write('')
       end if
+
+
+      !--- aerosol section (mv latter for other specific routine)
+      nullify(config_aer_monan)
+      call mpas_pool_get_config(configs, 'config_aer_monan', config_aer_monan)
+
+      nullify(config_dust_aer_monan)
+      call mpas_pool_get_config(configs, 'config_dust_aer_monan', config_dust_aer_monan)
+      
+      nullify(aerosols_monan_in)
+      call mpas_pool_get_package(packages, 'aerosols_monan_inActive', aerosols_monan_in)
+      aerosols_monan_in = .false. 
+      
+      nullify(dust_aer_monan_in)
+      call mpas_pool_get_package(packages, 'dust_aer_monan_inActive', dust_aer_monan_in)
+      dust_aer_monan_in = .false. 
+    
+      call mpas_log_write('')
+      call mpas_log_write('Options for the MONAN aerosol scheme:')
+
+      if (config_aer_monan == 1) then
+            aerosols_monan_in = .true.
+            call mpas_log_write('  Option aerosols_monan_in: Active')
+            if(config_dust_aer_monan == 1)   then 
+               dust_aer_monan_in = .true.
+               call mpas_log_write('  Option for dust aerosols_monan_in: Active')
+            endif
+      else
+            config_dust_aer_monan = 0
+            call mpas_log_write('  Option aerosols_monan_in: Inactive')
+      end if
+
+      call mpas_log_write('')
+
 
    end subroutine setup_monan_packages
 

@@ -952,6 +952,20 @@ real(kind=RKIND),dimension(:,:),allocatable:: &
  real(kind=RKIND),dimension(:,:),allocatable:: tsk_ice
 
 
+
+!=================================================================================================================
+!... variables and arrays related to MONAN aerosol module
+!=================================================================================================================
+ real(kind=RKIND),dimension(:,:,:),allocatable:: &
+      aer_snk_p &
+     ,aer_src_p 
+
+ real(kind=RKIND),dimension(:,:,:,:),allocatable:: &
+      aer_p              !aerosol mass mixing ratio                                            [kg/kg]
+     
+
+
+
  contains
 
 

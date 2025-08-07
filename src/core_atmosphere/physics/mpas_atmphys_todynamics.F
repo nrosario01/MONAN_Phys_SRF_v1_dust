@@ -102,6 +102,8 @@
  integer,pointer:: index_cnvcf, index_buoyx
  integer,pointer:: nCells,nCellsSolve,nEdges,nEdgesSolve
 
+ integer, pointer:: config_aer_monan
+
  real(kind=RKIND),dimension(:,:),pointer:: mass          ! time level 2 rho_zz
  real(kind=RKIND),dimension(:,:),pointer:: mass_edge     ! diag rho_edge
  real(kind=RKIND),dimension(:,:),pointer:: theta_m       ! time level 1
@@ -288,6 +290,18 @@
 !    call mpas_log_write('--- end subroutine physics_get_tend')
 !    call mpas_log_write('')
 ! endif
+
+! --- MONAN aerosol model
+ call mpas_pool_get_config(block%configs, 'config_aer_monan', config_aer_monan)
+ if(config_aer_monan == 1) then
+     
+      call physics_get_tend_work_aerosols(state,block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve, &
+                                          diag_physics, tend_scalars, mass)
+ endif
+
+
+
+
 
  end subroutine physics_get_tend
 
@@ -555,6 +569,75 @@
  end do
  
  end subroutine tend_toEdges
+
+!==================================================================================================
+ subroutine physics_get_tend_work_aerosols(state,block, mesh, nCells, nEdges, nCellsSolve, nEdgesSolve,&
+                                           diag_physics,tend_scalars, mass)
+!==================================================================================================
+
+     use mpas_atm_dimensions
+     
+     implicit none
+
+     type(block_type)    ,intent(in):: block
+     type(mpas_pool_type),intent(in):: mesh
+     type(mpas_pool_type),intent(in):: state
+     type(mpas_pool_type),intent(in):: diag_physics
+
+     integer, intent(in):: nCells, nEdges, nCellsSolve, nEdgesSolve
+     !-- tendency of a scalar mass per unit volume divided by d(zeta)/dz Unit: kg / m^3 / s
+     real (kind=RKIND), dimension(num_scalars,nVertLevels,nCells+1), intent(inout) :: tend_scalars
+     !-- dry air density divided by d(zeta)/dz Unit: kg / m^3
+     real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: mass
+     !real (kind=RKIND), dimension(nVertLevels,nCells+1), intent(in) :: rqvcuten
+
+     integer,pointer:: index_aer01, index_aer02
+     integer,pointer:: index_dst01,index_dst02,index_dst03,index_dst04
+
+     integer,pointer:: num_aer_monan,num_gen_aer_monan,num_dust_aer_monan
+     integer,pointer:: num_gas_monan, num_tracer_monan
+     integer,pointer,dimension(:) :: aer_ind_monan
+     real(kind=RKIND),pointer,dimension(:,:) :: aer_src,aer_snk ! dim: (num_aer_monan,ncells)
+
+     integer :: i, k, n_aer,ind_scl, k_sfc
+     !---
+     call mpas_pool_get_dimension(mesh, 'num_aer_monan', num_aer_monan)
+     call mpas_pool_get_array(diag_physics,'aer_src_monan', aer_src      )
+     call mpas_pool_get_array(diag_physics,'aer_snk_monan', aer_snk      )
+     call mpas_pool_get_array(diag_physics,'aer_ind_monan', aer_ind_monan)
+ 
+     call mpas_pool_get_dimension(state,'index_aer01',index_aer01)
+     call mpas_pool_get_dimension(state,'index_aer02',index_aer02)
+     call mpas_pool_get_dimension(state,'index_dst01',index_dst01)
+     call mpas_pool_get_dimension(state,'index_dst02',index_dst02)
+     call mpas_pool_get_dimension(state,'index_dst03',index_dst03)
+     call mpas_pool_get_dimension(state,'index_dst04',index_dst04)
+
+
+     !print*," tracers physics_get_tend 2 ",num_aer_monan!,num_gas_monan,num_tracer_monan
+
+     !--- areal sources/sinks (emission/dry dep)
+     !--- units of aer_src and aer_snk are mass per unit volume divided by d(zeta)/dz (kg / m^3 / s)
+     k_sfc=1
+     do i = 1, nCellsSolve
+        do n_aer = 1, num_aer_monan
+         ind_scl = aer_ind_monan(n_aer)
+         !if(i==1) print*,'ind',n_aer,ind_scl,num_aer_monan
+         tend_scalars(ind_scl,k_sfc,i) = tend_scalars(ind_scl,k_sfc,i) + aer_src(n_aer,i)
+     enddo; enddo
+     !--- 3d sources/sinks plus transport by turb/convection/sedim
+     !--- units of raercuten and raerblten are kg[aer] / kg[air] / s
+     !--- multipled by "mass" results in kg / m^3 / s, which are the expected units of a scalar tendency.
+     do i = 1, nCellsSolve
+        do k = 1, nVertLevels
+           do n_aer = 1, num_aer_monan
+             ind_scl = aer_ind_monan(n_aer)
+             tend_scalars(ind_scl,k,i) = tend_scalars(ind_scl,k,i) !+ ( raercuten(n_aer,k,i) + &
+                                             !    raerblten(n_aer,k,i) )*mass(k,i)
+     enddo; enddo; enddo
+
+
+ end subroutine physics_get_tend_work_aerosols
 
 !=================================================================================================================
  end module mpas_atmphys_todynamics

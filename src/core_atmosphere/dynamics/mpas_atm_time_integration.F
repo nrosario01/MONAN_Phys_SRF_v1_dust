@@ -369,6 +369,9 @@ module atm_time_integration
       integer, pointer :: num_scalars, index_qv, nCells, nCellsSolve, nEdges, nEdgesSolve, nVertices, nVerticesSolve, nVertLevels
       integer, pointer :: index_qc, index_qr, index_qi, index_qs, index_qg, index_nr, index_ni
       integer, pointer :: index_buoyx, index_cnvcf, index_tke_shmf
+      integer, pointer :: index_aer01,index_aer02
+      integer, pointer :: index_dst01,index_dst02,index_dst03,index_dst04
+ 
 
       character(len=StrKIND), pointer :: config_IAU_option
 
@@ -475,6 +478,13 @@ module atm_time_integration
          call mpas_pool_get_dimension(state, 'index_buoyx', index_buoyx)
          call mpas_pool_get_dimension(state, 'index_cnvcf', index_cnvcf)
          call mpas_pool_get_dimension(state, 'index_tke_shmf', index_tke_shmf)
+         !--- aerosol section
+         call mpas_pool_get_dimension(state, 'index_aer01', index_aer01)
+         call mpas_pool_get_dimension(state, 'index_aer02', index_aer02)
+         call mpas_pool_get_dimension(state, 'index_dst01', index_dst01)
+         call mpas_pool_get_dimension(state, 'index_dst02', index_dst02)
+         call mpas_pool_get_dimension(state, 'index_dst03', index_dst03)
+         call mpas_pool_get_dimension(state, 'index_dst04', index_dst04)
 
       endif
 
@@ -938,10 +948,30 @@ module atm_time_integration
                   if (index_buoyx > 0) then
                      scalars_driving(index_buoyx,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'buoyx', rk_timestep(rk_step) )
                   end if
-                  
                   if (index_tke_shmf > 0) then
                      scalars_driving(index_tke_shmf,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'tke_shmf', rk_timestep(rk_step) )
                   end if
+                  !--- aerosol section
+                  if (index_aer01 > 0) then
+                      scalars_driving(index_aer01,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'aer01', rk_timestep(rk_step) )
+                   end if
+                  if (index_aer02 > 0) then
+                      scalars_driving(index_aer02,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'aer02', rk_timestep(rk_step) )
+                  end if
+                  if (index_dst01 > 0) then
+                      scalars_driving(index_dst01,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst01', rk_timestep(rk_step) )
+                   end if
+                  if (index_dst02 > 0) then
+                      scalars_driving(index_dst02,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst02', rk_timestep(rk_step) )
+                   end if
+                  if (index_dst03 > 0) then
+                      scalars_driving(index_dst03,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst03', rk_timestep(rk_step) )
+                   end if
+                  if (index_dst04 > 0) then
+                      scalars_driving(index_dst04,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst04', rk_timestep(rk_step) )
+                   end if
+
+
                   !$OMP PARALLEL DO
                   do thread=1,nThreads
                      call atm_bdy_adjust_scalars( state, diag, mesh, block % configs, scalars_driving, nVertLevels, dt, rk_timestep(rk_step), &
@@ -1117,6 +1147,25 @@ module atm_time_integration
                if (index_tke_shmf > 0) then
                   scalars_driving(index_tke_shmf,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'tke_shmf', rk_timestep(rk_step) )
                end if
+               !--- aerosol section
+               if (index_aer01 > 0) then
+                  scalars_driving(index_aer01,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'aer01', rk_timestep(rk_step) )
+               end if
+               if (index_aer02 > 0) then
+                  scalars_driving(index_aer02,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'aer02', rk_timestep(rk_step) )
+               end if
+               if (index_dst01 > 0) then
+                   scalars_driving(index_dst01,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst01', rk_timestep(rk_step) )
+                end if
+               if (index_dst02 > 0) then
+                   scalars_driving(index_dst02,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst02', rk_timestep(rk_step) )
+                end if
+               if (index_dst03 > 0) then
+                   scalars_driving(index_dst03,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst03', rk_timestep(rk_step) )
+                end if
+               if (index_dst04 > 0) then
+                   scalars_driving(index_dst04,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst04', rk_timestep(rk_step) )
+                end if
                 
 !$OMP PARALLEL DO
                do thread=1,nThreads
@@ -1287,6 +1336,26 @@ module atm_time_integration
          if (index_tke_shmf > 0) then
             scalars_driving(index_tke_shmf,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'tke_shmf', dt )
          end if
+         !--- aerosol section
+         if (index_aer01 > 0) then
+            scalars_driving(index_aer01,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'aer01', dt )
+         end if
+         if (index_aer02 > 0) then
+            scalars_driving(index_aer02,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'aer02', dt )
+         end if
+         if (index_dst01 > 0) then
+            scalars_driving(index_dst01,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst01', dt )
+          end if
+         if (index_dst02 > 0) then
+            scalars_driving(index_dst02,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst02', dt )
+          end if
+         if (index_dst03 > 0) then
+            scalars_driving(index_dst03,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst03', dt )
+          end if
+         if (index_dst04 > 0) then
+            scalars_driving(index_dst04,1:nVertLevels,1:nCells+1) = mpas_atm_get_bdy_state( clock, block, nVertLevels, nCells, 'dst04', dt )
+          end if
+
       
 !$OMP PARALLEL DO
          do thread=1,nThreads

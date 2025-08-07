@@ -431,6 +431,12 @@ subroutine shoc_main ( &
   ! pressure levels on interface grid [Pa] used in mf_integrate()
   real(rtype) :: pres_zi(shcol,nlevi)
 
+  if (.not. do_edmf .and. .not. do_mf_diag) then
+    print*, 'SHOCMF: MASS FLUX DISABLED'
+  else if (do_edmf .and. do_mf_diag) then
+    print*, 'SHOCMF: MASS FLUX ENABLED'
+  endif
+
   ! Compute integrals of static energy, kinetic energy, water vapor, and liquid water
   ! for the computation of total energy before SHOC is called.  This is for an
   ! effort to conserve energy since liquid water potential temperature (which SHOC
@@ -475,7 +481,9 @@ subroutine shoc_main ( &
        shoc_qv,u_wind,v_wind,&              ! Input
        ustar,obklen,kbfs,shoc_cldfrac,&     ! Input
        pblh,rino)                                ! Output    
-       
+      
+
+
     ! PBL height for integrate_mf subroutine
     call edmf_pblh(&
        shcol,nlev,nlevi,&      ! Input
@@ -794,6 +802,9 @@ subroutine shoc_grid( &
       ! define thickness of the thermodynamic gridpoints
       dz_zt(i,k) = zi_grid(i,k) - zi_grid(i,k+1)
 
+if(dz_zt(i,k) < 0.) stop 2111
+
+
       ! define thickness of the interface grid points
       if (k .eq. 1) then
         dz_zi(i,k) = 0._rtype ! never used
@@ -859,6 +870,7 @@ subroutine compute_shoc_vapor( &
   do k = 1, nlev
     do i = 1, shcol
       qv(i,k) = qw(i,k) - ql(i,k)
+      if(qv(i,k) < 0.0) stop 'qv neg'
     enddo
   enddo
 
@@ -4487,6 +4499,7 @@ subroutine shoc_diag_obklen(&
     ustar(i) = max(bfb_sqrt(bfb_square(uw_sfc(i)) + bfb_square(vw_sfc(i))),ustar_min)
     kbfs(i) = wthl_sfc(i)+eps*th_sfc*wqw_sfc(i)
     obklen(i) = -thv_sfc*bfb_cube(ustar(i))/(ggr*vk*(kbfs(i)+sign(1.e-10_rtype,kbfs(i))))
+    !print*,'eps',eps !ustar(i),obklen(i)
   enddo
 
   return
@@ -4616,6 +4629,11 @@ subroutine pblintd(&
                    shcol,nlev,nlevi, &                  ! Input
                    zi,cldn,          &                  ! Input
                    pblh)                                ! InOutput
+
+
+     if(minval(pblh) <0.0) stop 'pblh neg'
+     if(maxval(pblh) >5000.) stop 'pblh too high'
+
 
     return
 end subroutine pblintd

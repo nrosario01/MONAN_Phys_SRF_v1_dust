@@ -23,6 +23,8 @@
  use mpas_atmphys_landuse
  use mpas_atmphys_o3climatology
 
+ use mpas_atmphys_driver_aer_monan, only: init_aerosol_monan
+
  implicit none
  private
  public:: physics_init
@@ -129,7 +131,7 @@
  integer,pointer:: nCells
  logical,pointer:: config_oml1d
  
- 
+ integer,pointer:: config_aer_monan 
 
 !local variables and arrays:
  type(MPAS_Time_Type):: currTime
@@ -402,6 +404,12 @@
     else
        call init_radiation_lw(dminfo,configs)
     endif
+ endif
+
+!--- aerosol section for MONAN
+ call mpas_pool_get_config(configs,'config_aer_monan' ,config_aer_monan )
+ if(config_aer_monan == 1) then 
+   call init_aerosol_monan(configs,diag_physics,state,mesh,time_lev)
  endif
 
 ! call mpas_log_write('')

@@ -27,6 +27,7 @@
  use mpas_timer
 
  use module_pbl_scalars, only: driver_pbl_scalars
+ use mpas_atmphys_driver_aer_monan
 
  implicit none
  private
@@ -165,6 +166,10 @@
 
  integer,pointer:: nThreads
  integer,dimension(:),pointer:: cellSolveThreadStart, cellSolveThreadEnd
+
+
+ integer, pointer :: config_aer_monan
+
 
 !=================================================================================================================
 !call mpas_log_write('')
@@ -315,7 +320,7 @@
        call allocate_pbl(block%configs)
 !$OMP PARALLEL DO
        do thread=1,nThreads
-          call driver_pbl(itimestep,block%configs,mesh,sfc_input,diag_physics,tend_physics, &
+          call driver_pbl(itimestep,block%configs,mesh,sfc_input,diag_physics,tend_physics,domain%dminfo, &
                           cellSolveThreadStart(thread),cellSolveThreadEnd(thread))
 
           call driver_pbl_scalars(itimestep,diag_physics,block%configs,state,mesh,time_lev, &
@@ -323,6 +328,21 @@
        end do
 !$OMP END PARALLEL DO
        call deallocate_pbl(block%configs)
+
+    endif
+
+    !--- MONAN aerosol module 
+    call mpas_pool_get_config(block%configs, 'config_aer_monan', config_aer_monan)
+    if(config_aer_monan == 1) then
+       call   allocate_aerosol_monan(block%configs)
+!$OMP PARALLEL DO
+       do thread=1,nThreads
+          call driver_aerosol_monan(itimestep,block%configs,mesh,diag_physics,sfc_input, &
+                                    cellSolveThreadStart(thread), cellSolveThreadEnd(thread), &
+                                    state, time_lev)
+       end do
+!$OMP END PARALLEL DO
+       call deallocate_aerosol_monan(block%configs)
 
     endif
 
