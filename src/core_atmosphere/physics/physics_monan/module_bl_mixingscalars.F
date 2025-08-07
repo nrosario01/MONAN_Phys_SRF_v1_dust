@@ -36,6 +36,11 @@ module module_pbl_scalars
       logical,pointer:: config_do_restart
       integer,pointer:: num_scalars, index_cnvcf, index_buoyx,index_qv
 
+      integer, pointer:: config_aer_monan
+      integer,pointer:: num_aer_monan,num_gen_aer_monan,num_dust_aer_monan
+      integer,pointer:: num_gas_monan, num_tracer_monan
+      integer,pointer,dimension(:) :: aer_ind_monan
+
       !--- kzh ="vertical diffusion coefficient of potential temperature" 
       !--- units="m^{2} s^{-1}"
       real(kind=RKIND),dimension(:,:),pointer :: kzh
@@ -52,7 +57,7 @@ module module_pbl_scalars
 
       !--- CCPP-compliant flags:
       character(len=StrKIND):: errmsg
-      integer:: errflg
+      integer:: errflg, n_aer
 
       !----initialization of CCPP-compliant flags:
       errmsg = ' '
@@ -76,6 +81,18 @@ module module_pbl_scalars
          index_scalar(nscalars) = index_cnvcf
       endif
       
+      !---- monan aerosol section 
+      call mpas_pool_get_config(configs, 'config_aer_monan', config_aer_monan)
+      if(config_aer_monan == 1) then
+          call mpas_pool_get_array(diag_physics,'aer_ind_monan', aer_ind_monan)
+          call mpas_pool_get_dimension(mesh, 'num_aer_monan', num_aer_monan)
+          do n_aer = 1, num_aer_monan
+                nscalars = nscalars + 1
+                index_scalar(nscalars) = aer_ind_monan(n_aer)
+                !print*,'naer', n_aer, num_aer_monan, index_scalar(nscalars),nscalars
+          enddo
+      endif
+      !
       !--- if no scalar to be mixed, make a "U-turn" 
       if(nscalars == 0) return 
 
@@ -122,7 +139,7 @@ module module_pbl_scalars
 
           !---call to subroutine to apply dry PBL mixing
           !--- original routine
-!         call mix_scalars    (kts,kte,dt_pbl,dz,rho,dfh,nscalars,local_scalars)
+          !call mix_scalars    (kts,kte,dt_pbl,dz,rho,dfh,nscalars,local_scalars)
           !--- optimized routine
           call mix_scalars_opt(kts,kte,dt_pbl,dz,rho,dfh,nscalars,local_scalars)
 
@@ -133,6 +150,10 @@ module module_pbl_scalars
           enddo 
 
       enddo ! loop i
+
+      !do n_aer = 1, num_aer_monan
+      !         print*,'naer',   aer_ind_monan(n_aer), maxval(scalars( aer_ind_monan(n_aer),:,:)),minval(scalars( aer_ind_monan(n_aer),:,:))
+      !enddo
 
       if(allocated(local_scalars)) deallocate(local_scalars)
 
@@ -199,7 +220,7 @@ module module_pbl_scalars
         call tridiag3(kte,a,b,c,d,x)
         
         do k=kts,kte
-           local_scalars(k,isc) = max(1.e-12,x(k))
+           local_scalars(k,isc) = max(1.e-24,x(k))
         enddo
      enddo
 
@@ -262,14 +283,14 @@ module module_pbl_scalars
         call tridiag3(kte,a,b,c,d,x)
         
         do k=kts,kte
-           local_scalars(k,isc) = max(1.e-12,x(k))
+           local_scalars(k,isc) = max(1.e-24,x(k))
         enddo
      enddo
 
    end subroutine mix_scalars_opt
 !-----------------------------------------------------------------------------
 !>\ingroup gsd_mynn_edmf
-   subroutine tridiag3(kte,a,b,c,d,x)
+   subroutine tridiag3(kte,a,b_in,c,d,x)
        !ccccccccccccccccccccccccccccccc                                                                   
        ! Aim: Inversion and resolution of a tridiagonal matrix                                            
        !          A X = D                                                                                 
@@ -284,10 +305,13 @@ module module_pbl_scalars
         implicit none
         integer,intent(in)   :: kte
         integer, parameter   :: kts=1
-        real(kind_phys), dimension(:) :: a,b,c,d
-        real(kind_phys), dimension(:), intent(out) :: x
+        real(kind_phys), dimension(:), intent(in   ) :: a,b_in,c
+        real(kind_phys), dimension(:), intent(inout) :: d
+        real(kind_phys), dimension(:), intent(out  ) :: x
         integer :: ind
+        real :: b(kts:kte)
 
+        b = b_in
         do ind=kte-1,kts,-1
          d(ind)=d(ind)-c(ind)*d(ind+1)/b(ind+1)
          b(ind)=b(ind)-c(ind)*a(ind+1)/b(ind+1)
