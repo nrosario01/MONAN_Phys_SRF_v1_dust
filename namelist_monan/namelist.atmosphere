@@ -73,6 +73,10 @@
     config_gf_sub3d = 0
 /
 
+&aerosols_monan
+    config_aer_monan = 0
+    config_dust_aer_monan = 0
+/
 &soundings
     config_sounding_interval = 'none'
 /
