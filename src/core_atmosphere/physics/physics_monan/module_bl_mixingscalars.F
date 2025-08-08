@@ -10,15 +10,18 @@ module module_pbl_scalars
    !
    !================================================================================================================= 
    ! A routine to calculate the dry mixing in PBL for scalars not included in the MYNN routine.
-   ! This is strongly based on "mynn_mix_chem" routine in the file 'bl_mynn_subroutines.F'
+   ! This is heavily based on "mynn_mix_chem" routine in the file 'bl_mynn_subroutines.F'
    ! Saulo R. Freitas - 19 Sep 2024 (send comments to saulo.freitas@inpe.br)
+   ! SRF: Included treatment for aerosols @ 07-Aug-2025 
    !================================================================================================================= 
-   subroutine driver_pbl_scalars (itimestep,diag_physics,configs,state,mesh,time_lev,its,ite,kts,kte,dt_pbl)
+   subroutine driver_pbl_scalars (itimestep,diag_physics,tend_physics,configs,state,mesh,time_lev &
+                                 ,its,ite,kts,kte,dt_pbl)
    !=================================================================================================================     
       implicit none
       !--- input arguments
       type(mpas_pool_type),intent(in) :: configs
       type(mpas_pool_type),intent(in) :: diag_physics
+      type(mpas_pool_type),intent(in) :: tend_physics
       type(mpas_pool_type),intent(in) :: state
       type(mpas_pool_type),intent(in) :: mesh
       integer,intent(in) :: itimestep,time_lev
@@ -36,10 +39,12 @@ module module_pbl_scalars
       logical,pointer:: config_do_restart
       integer,pointer:: num_scalars, index_cnvcf, index_buoyx,index_qv
 
-      integer, pointer:: config_aer_monan
-      integer,pointer:: num_aer_monan,num_gen_aer_monan,num_dust_aer_monan
+      integer,pointer:: config_aer_monan
+      integer,pointer:: num_gen_aer_monan,num_dust_aer_monan
+      integer,pointer:: num_aer_monan => null()
       integer,pointer:: num_gas_monan, num_tracer_monan
       integer,pointer,dimension(:) :: aer_ind_monan
+      real(kind=RKIND),dimension(:,:,:),pointer:: raerblten
 
       !--- kzh ="vertical diffusion coefficient of potential temperature" 
       !--- units="m^{2} s^{-1}"
@@ -58,19 +63,21 @@ module module_pbl_scalars
       !--- CCPP-compliant flags:
       character(len=StrKIND):: errmsg
       integer:: errflg, n_aer
+      real :: dt_inv
 
       !----initialization of CCPP-compliant flags:
       errmsg = ' '
       errflg = 0
+      dt_inv = 1.0_RKIND/dt_pbl
 
       call mpas_pool_get_config(configs,'config_do_restart'  ,config_do_restart  )
       init_flag = 1
       if(config_do_restart .or. itimestep > 1) init_flag = 0
 
-      !--- determine the number and which scalars will be mixed 
+      !--- determine the number and which scalars will be mixed up
       nscalars = 0
-      call mpas_pool_get_dimension(state,'index_buoyx',index_buoyx)
 
+      call mpas_pool_get_dimension(state,'index_buoyx',index_buoyx)
       if(index_buoyx > 0) then 
          nscalars = nscalars + 1
          index_scalar(nscalars) = index_buoyx
@@ -91,6 +98,8 @@ module module_pbl_scalars
                 index_scalar(nscalars) = aer_ind_monan(n_aer)
                 !print*,'naer', n_aer, num_aer_monan, index_scalar(nscalars),nscalars
           enddo
+          !--- tendencies 
+          call mpas_pool_get_array(tend_physics,'raerblten',raerblten)
       endif
       !
       !--- if no scalar to be mixed, make a "U-turn" 
@@ -137,16 +146,25 @@ module module_pbl_scalars
               dfh(k) = kzh(k,i)/dzk
           enddo
 
-          !---call to subroutine to apply dry PBL mixing
+          !---call to subroutine to apply PBL mixing
           !--- original routine
           !call mix_scalars    (kts,kte,dt_pbl,dz,rho,dfh,nscalars,local_scalars)
+          !
           !--- optimized routine
           call mix_scalars_opt(kts,kte,dt_pbl,dz,rho,dfh,nscalars,local_scalars)
 
-          !--- copy back the updated scalars 
-          !--- (a tendency could be computed here by saving the previous values of the scalars)
-          do isc = 1,nscalars
+          !--- copy back the updated scalars
+          do isc = 1, nscalars - num_aer_monan
               scalars(index_scalar(isc),kts:kte,i) = local_scalars(kts:kte,isc)  
+          enddo
+          
+          !--- aerosol section - producing the tendencies instead of updating the scalar mixing ratio
+          !--- (a tendency could be computed here by saving the previous values of the scalars)
+          n_aer = 0
+          do isc = nscalars - num_aer_monan + 1,nscalars
+              n_aer = n_aer + 1
+              !if(i==its) print*,'check index',index_scalar(isc),aer_ind_monan(n_aer)
+              raerblten(n_aer,kts:kte,i) = dt_inv*(local_scalars(kts:kte,isc) - scalars(index_scalar(isc),kts:kte,i))
           enddo 
 
       enddo ! loop i

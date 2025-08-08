@@ -3681,6 +3681,19 @@
 
                 <var name="rthratenlw" type="real" dimensions="nVertLevels nCells Time" units="K s^{-1}"
                      description="tendency of potential temperature due to long wave radiation"/>
+
+                <!-- ================================================================================================== -->
+                <!-- ... Tendencies from parameterizations of pbl and convection processes for aerosols/tracers         -->
+                <!-- ================================================================================================== -->
+
+                <var name="raerblten" type="real" dimensions="num_aer_monan nVertLevels nCells Time" units="kg kg^{-1} s^{-1}"
+                     description="tendency of aerosol mixing ratio due to pbl processes"
+                     packages="aerosols_monan_in"/>
+
+                <var name="raercuten" type="real" dimensions="num_aer_monan nVertLevels nCells Time" units="kg kg^{-1} s^{-1}"
+                     description="tendency of aerosol mixing ratio due to convective transport and wet removal"
+                     packages="aerosols_monan_in"/>
+
 #endif
         </var_struct>
 

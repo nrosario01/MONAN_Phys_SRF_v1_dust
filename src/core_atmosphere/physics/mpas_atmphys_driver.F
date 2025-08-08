@@ -323,7 +323,7 @@
           call driver_pbl(itimestep,block%configs,mesh,sfc_input,diag_physics,tend_physics,domain%dminfo, &
                           cellSolveThreadStart(thread),cellSolveThreadEnd(thread))
 
-          call driver_pbl_scalars(itimestep,diag_physics,block%configs,state,mesh,time_lev, &
+          call driver_pbl_scalars(itimestep,diag_physics,tend_physics,block%configs,state,mesh,time_lev, &
                                   cellSolveThreadStart(thread),cellSolveThreadEnd(thread),kts,kte,dt_pbl)
        end do
 !$OMP END PARALLEL DO

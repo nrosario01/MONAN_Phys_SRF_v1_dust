@@ -7098,6 +7098,7 @@ module module_cu_gf_monan
                  fq = max(min (1. , sqrt (zo_cup(klcl(i),i) /(1.e-6 + zo_cup(max(k,klcl(i)),i))) ), 0.1)
                 
                  entr_rate_2d(k,i) = entr_rate(i)*entr_frh2d(k,i)*fq
+                 cd(k,i)           = 0.75e-4*detr_frh2d(k,i)       
               enddo
          enddo
 
@@ -7110,6 +7111,7 @@ module module_cu_gf_monan
                  fq = max(min (1. , sqrt (zo_cup(klcl(i),i) / (1.e-6 + zo_cup(max(k,klcl(i)),i))) ), 0.1)
                 
                  entr_rate_2d(k,i) = entr_rate(i)*fq
+                 cd(k,i)           = 0.75e-4
               enddo
          enddo
 
@@ -7122,13 +7124,13 @@ module module_cu_gf_monan
            enddo
       enddo
 
-      if(cumulus /= 'shallow') then
-         do vtp_index = get_num_elements(vec_ok),1,-1
-            i = get_data_value(vec_ok,vtp_index)
-            cd(:,i)=0.75e-4*detr_frh2d(:,i)               
-         enddo
-      else
-         do vtp_index = get_num_elements(vec_ok),1,-1
+      !if(cumulus /= 'shallow') then
+      !   do vtp_index = get_num_elements(vec_ok),1,-1
+      !      i = get_data_value(vec_ok,vtp_index)
+      !      cd(:,i)=0.75e-4*detr_frh2d(:,i)               
+      !   enddo
+      if(cumulus == 'shallow') then
+          do vtp_index = get_num_elements(vec_ok),1,-1
             i = get_data_value(vec_ok,vtp_index)
             cd(:,i)=0.75*entr_rate_2d(:,i)!+0.5e-3
          enddo
