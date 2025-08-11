@@ -872,6 +872,8 @@
 			<var name="hv_oml"/>
                <var name="aer_snk_monan" packages="aerosols_monan_in"/>
                <var name="aer_src_monan" packages="aerosols_monan_in"/>
+               <var name="raerblten" packages="aerosols_monan_in"/>
+               <var name="raercuten" packages="aerosols_monan_in"/>
 
 #endif
 		</stream>

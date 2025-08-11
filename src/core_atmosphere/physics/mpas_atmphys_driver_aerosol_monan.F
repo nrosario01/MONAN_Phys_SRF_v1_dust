@@ -392,14 +392,16 @@
 
  do iCell = 1, nCellsSolve
    k = 1 ; n_aer=1
+   print*,'vegty=',ivgtyp(iCell)
    if (ivgtyp(iCell) == 17) then
       flux = -0.001 / 86400.0  ! 1 g/m^2/day destruction over water
    else
       flux =  0.002 / 86400.0  ! 2 g/m^2/day production over land
+      if(ivgtyp(iCell) == 2) flux = 4.*flux
    endif
    aer_src(n_aer,iCell) = flux/  (zgrid(k+1,iCell) - zgrid(k,iCell)) / zz(k,iCell) ! unit: kg/m^3/s
  enddo
-
+ 
  if(config_dust_aer_monan == 1) then 
  !---- dust aerosols section
      call mpas_pool_get_dimension(state,'index_dst01',index_dst01); dst01 => scalars(index_dst01,:,:)
