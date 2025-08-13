@@ -14,6 +14,9 @@
  use mpas_atmphys_constants
  use mpas_atmphys_vars
 
+
+ use module_aerosol_dust,only: driver_aerosol_dust
+
  implicit none
  private
  public:: init_aerosol_monan,       &
@@ -402,8 +405,10 @@
    aer_src(n_aer,iCell) = flux/  (zgrid(k+1,iCell) - zgrid(k,iCell)) / zz(k,iCell) ! unit: kg/m^3/s
  enddo
  
- if(config_dust_aer_monan == 1) then 
- !---- dust aerosols section
+  !---- dust aerosols section
+if(config_dust_aer_monan == 1) then 
+     call driver_aerosol_dust(itimestep,configs,mesh,diag_physics,sfc_input,its,ite, state,time_lev)
+
      call mpas_pool_get_dimension(state,'index_dst01',index_dst01); dst01 => scalars(index_dst01,:,:)
      call mpas_pool_get_dimension(state,'index_dst02',index_dst02); dst02 => scalars(index_dst02,:,:)
      call mpas_pool_get_dimension(state,'index_dst03',index_dst03); dst03 => scalars(index_dst03,:,:)
